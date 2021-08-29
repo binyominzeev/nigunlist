@@ -9,3 +9,8 @@ Add categories, titles, and match them to each other with a simple, intuitive in
 That's how it looks on my phone:
 
 ![Screenshot](photo_2021-08-29_23-33-06.jpg)
+
+In order to use this, it is recommended to self-host it. Currently there is a simple password protection built-in, which you can control in your own MySQL database.
+
+
+
