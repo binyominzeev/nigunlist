@@ -18,18 +18,40 @@ if ($belepve == 1) {
 	# ================ add new ================
 	
 	if (isset($_POST['add_song_title'])) {
-		# ============= add nigun =============
+		if (isset($_GET['nig'])) {
+			# ============= modify nigun =============
+			
+			$nig=mysqli_real_escape_string($sql, $_GET['nig']);
+			$title=mysqli_real_escape_string($sql, $_POST['add_song_title']);
+			
+			$q="UPDATE `nigunlist_nigun` SET `title`='$title' WHERE id='$nig'";
+			mysqli_query($sql, $q) or print(mysqli_error($sql));
 
-		$title=mysqli_real_escape_string($sql, $_POST['add_song_title']);
-		$q="INSERT INTO `nigunlist_nigun` (`title`, `datetime`) VALUES ('$title', now());";
-		mysqli_query($sql, $q) or print(mysqli_error($sql));
-		$nigun_id=mysqli_insert_id($sql);
-		
-		if (isset($_POST['categ'])) {
-			foreach ($_POST['categ'] as $id) {
-				$id=mysqli_real_escape_string($sql, $id);
-				$q="INSERT INTO nigunlist_categ_nigun (categ, nigun) VALUES ('$id', '$nigun_id');";
-				mysqli_query($sql, $q) or print(mysqli_error($sql));
+			$q="DELETE FROM `nigunlist_categ_nigun` WHERE nigun='$nig'";
+			mysqli_query($sql, $q) or print(mysqli_error($sql));
+			
+			if (isset($_POST['categ'])) {
+				foreach ($_POST['categ'] as $id) {
+					$id=mysqli_real_escape_string($sql, $id);
+					$q="INSERT INTO nigunlist_categ_nigun (categ, nigun) VALUES ('$id', '$nig');";
+					mysqli_query($sql, $q) or print(mysqli_error($sql));
+				}
+			}
+			unset($_GET['nig']);
+		} else {
+			# ============= add nigun =============
+
+			$title=mysqli_real_escape_string($sql, $_POST['add_song_title']);
+			$q="INSERT INTO `nigunlist_nigun` (`title`, `datetime`) VALUES ('$title', now());";
+			mysqli_query($sql, $q) or print(mysqli_error($sql));
+			$nigun_id=mysqli_insert_id($sql);
+			
+			if (isset($_POST['categ'])) {
+				foreach ($_POST['categ'] as $id) {
+					$id=mysqli_real_escape_string($sql, $id);
+					$q="INSERT INTO nigunlist_categ_nigun (categ, nigun) VALUES ('$id', '$nigun_id');";
+					mysqli_query($sql, $q) or print(mysqli_error($sql));
+				}
 			}
 		}
 	} elseif (isset($_POST['categname'])) {
@@ -48,11 +70,33 @@ if ($belepve == 1) {
 			}
 		}
 	}
-
-	echo "<form method=\"post\" action=\"?\">\n".
-		"<input type=\"text\" name=\"add_song_title\" placeholder=\"Title\">\n".
-		"<fieldset data-role=\"controlgroup\" data-type=\"horizontal\">\n";
-
+	
+	$saved_categs=array();
+	
+	if (isset($_GET['nig'])) {
+		# ============= load song to modify =============
+		
+		$nig=mysqli_real_escape_string($sql, $_GET['nig']);
+		$q="SELECT title FROM `nigunlist_nigun` WHERE id='$nig';";
+		$r=mysqli_query($sql, $q) or print(mysqli_error($sql));
+		$rec=mysqli_fetch_array($r);
+		
+		echo "<form method=\"post\" action=\"?nig={$_GET['nig']}\">\n".
+			"<input type=\"text\" name=\"add_song_title\" value=\"{$rec['title']}\">\n".
+			"<fieldset data-role=\"controlgroup\" data-type=\"horizontal\">\n";
+		
+		$q="SELECT categ FROM `nigunlist_categ_nigun` WHERE nigun='$nig';";
+		$r=mysqli_query($sql, $q) or print(mysqli_error($sql));
+		
+		while ($rec=mysqli_fetch_array($r)) {
+			$saved_categs[$rec['categ']]="";
+		}
+	} else {
+		echo "<form method=\"post\" action=\"?$to_post\">\n".
+			"<input type=\"text\" name=\"add_song_title\" placeholder=\"Title\">\n".
+			"<fieldset data-role=\"controlgroup\" data-type=\"horizontal\">\n";
+	}
+	
 	$categs=array();
 	$categ_id=array();
 	
@@ -64,7 +108,10 @@ if ($belepve == 1) {
 		$categs[$id]=$rec['categ'];
 		$categ_id[]=$id;
 		
-		echo "<input type=\"checkbox\" name=\"categ[]\" value=\"$id\" id=\"checkbox-categ-$id\">\n".
+		$checked="";
+		if (isset($saved_categs[$id])) { $checked=" checked"; }
+		
+		echo "<input type=\"checkbox\" name=\"categ[]\" value=\"$id\" id=\"checkbox-categ-$id\"$checked>\n".
 			"<label for=\"checkbox-categ-$id\">{$rec['categ']}</label>\n";
 	}
 	
@@ -78,12 +125,12 @@ if ($belepve == 1) {
 
 	# ================ list existing ================
 	
-	$q="SELECT title FROM `nigunlist_nigun` ORDER BY `title`;";
+	$q="SELECT id, title FROM `nigunlist_nigun` ORDER BY `title`;";
 	
 	if (isset($_GET['cat'])) {
 		# ============= filter nigunim by categ =============
 		$cat=mysqli_real_escape_string($sql, $_GET['cat']);
-		$q="SELECT nigunlist_nigun.title FROM `nigunlist_nigun` LEFT JOIN `nigunlist_categ_nigun` ON nigunlist_nigun.id=nigunlist_categ_nigun.nigun WHERE nigunlist_categ_nigun.categ='$cat' ORDER BY `title`;";
+		$q="SELECT nigunlist_nigun.id, nigunlist_nigun.title FROM `nigunlist_nigun` LEFT JOIN `nigunlist_categ_nigun` ON nigunlist_nigun.id=nigunlist_categ_nigun.nigun WHERE nigunlist_categ_nigun.categ='$cat' ORDER BY `title`;";
 	}
 	
 	$r=mysqli_query($sql, $q) or print(mysqli_error($sql));
@@ -92,7 +139,7 @@ if ($belepve == 1) {
 	$out="<p><ul>\n";
 	
 	while ($rec=mysqli_fetch_array($r)) {
-		$out.="<li>{$rec['title']}</li>\n";
+		$out.="<li><a href=\"?nig={$rec['id']}\">{$rec['title']}</a></li>\n";
 		$songs[]=$rec['title'];
 	}
 	
