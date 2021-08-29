@@ -158,11 +158,16 @@ if ($belepve == 1) {
 	echo "</ul></p>\n<hr>\n<br>\n";
 
 	# ================ category-wise listing ================
+	
+	$q="SELECT COUNT(`id`) as count FROM `nigunlist_nigun`";
+	$r=mysqli_query($sql, $q) or print(mysqli_error($sql));
+	$rec=mysqli_fetch_array($r);
+	$count_all=$rec['count'];
 
 	$q="SELECT categ, COUNT(`nigun`) as count FROM `nigunlist_categ_nigun` GROUP BY categ";
 	$r=mysqli_query($sql, $q) or print(mysqli_error($sql));
 
-	echo "<a href=\"index.php?\" class=\"ui-btn ui-btn-inline\">All (".count($songs).")</a>\n";
+	echo "<a href=\"index.php?\" class=\"ui-btn ui-btn-inline\">All ($count_all)</a>\n";
 	$categ_links=array();
 
 	while ($rec=mysqli_fetch_array($r)) {
